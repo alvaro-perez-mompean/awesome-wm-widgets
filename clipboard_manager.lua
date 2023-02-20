@@ -10,13 +10,14 @@ local awful = require("awful")
 local factory = function(args)
     args = args or {}
     local settings = args.settings or function() end
-    
+
 
     local MAX_history_SIZE = 10
     local menu_container = nil
 
     local update_timer = timer({ timeout = 1 })
     local has_changes = false
+    local is_paused = false
 
     local history = {}
     local menu = {}
@@ -31,7 +32,7 @@ local factory = function(args)
         f:close()
         return clipboard
     end
-    
+
     function clipboard.is_clipboard_in_history(str)
         for _, v in pairs(history) do
             if v == str then
@@ -40,7 +41,23 @@ local factory = function(args)
         end
         return false
     end
-    
+
+    function clipboard.get_pause_item()
+        if is_paused then
+            return { "Resume", function()
+                clipboard.resume()
+                has_changes = true
+                update_timer:emit_signal("timeout")
+            end }
+        else
+            return { "Pause", function()
+                clipboard.pause()
+                has_changes = true
+                update_timer:emit_signal("timeout")
+            end }
+        end
+    end
+
     function clipboard.get_menu()
         if has_changes then
             menu = {}
@@ -55,9 +72,17 @@ local factory = function(args)
                     end)
                 end })
             end
-            table.insert(menu, { "Clear clipboard history", function() history = {} end })
+
+            table.insert(menu, { "----------------", function() end })
+
+            table.insert(menu, clipboard.get_pause_item())
+
+            table.insert(menu, { "Clear history", function()
+                history = {}
+                update_timer:emit_signal("timeout")
+            end })
         end
-        
+
         return menu
     end
 
@@ -95,6 +120,16 @@ local factory = function(args)
         end
     end
 
+    function clipboard.pause()
+        update_timer:stop()
+        is_paused = true
+    end
+
+    function clipboard.resume()
+        update_timer:start()
+        is_paused = false
+    end
+
     function clipboard.update()
         widget = clipboard.widget
         settings()
@@ -109,13 +144,13 @@ local factory = function(args)
         if has_changes then
             clipboard.update_menu()
         end
-        
+
         has_changes = false
     end
 
 
     clipboard.toggle_menu = function()
-        
+
         if menu_container then
             -- check visibility
             if menu_container.visible then
@@ -123,7 +158,7 @@ local factory = function(args)
             else
                 menu_container:get_root():toggle()
             end
-            
+
         end
     end
 
