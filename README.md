@@ -20,3 +20,33 @@ local clipboard_widget = clipboard_manager({
     end
 })
 ```
+
+### RSS
+A widget that shows the latest RSS entries
+
+#### Usage
+```lua
+local rss_reader = require("rss")
+
+local rss_reader_widget = rss_reader({
+    settings = function()
+        if current_elem and current_elem.title then
+            widget:set_markup(markup.font("Terminus 8", current_elem.title .. " "))
+        end
+
+        widget:buttons(awful.util.table.join(
+            awful.button({ }, 1, function ()
+                self.show_next()
+            end),
+
+            awful.button({ "Shift" }, 1, function ()
+                self.toggle_show_content()
+            end),
+
+            awful.button({ }, 3, function ()
+                self.show_prev()
+            end)
+        ))
+    end
+})
+```
